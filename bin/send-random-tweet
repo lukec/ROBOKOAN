@@ -1,0 +1,41 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use Zen::Koans qw/num_koans get_koan/;
+use Net::Twitter;
+use YAML qw/LoadFile/;
+use FindBin;
+use utf8;
+
+my $live = 1;
+
+my $max = num_koans();
+my $pick = int(rand($max));
+
+my $koan = get_koan($pick);
+my $url = "http://luk.ec/z?$pick";
+my $audio_url = "http://luk.ec/z?a$pick";
+
+my $tweet = uc($koan->title) . " - $url Audio: $audio_url #zen #koan\n";
+
+my $config = LoadFile("$FindBin::Bin/../.koanrc");
+my $nt = Net::Twitter->new(
+    traits   => [qw/OAuth API::REST/],
+    %{ $config->{twitter} }
+);
+
+my $len = length($tweet);
+my $left = 140 - $len - 5;
+if ($left > 10) {
+    my $body = substr($koan->body, 0, $left);
+    $body =~ s/\s+\w*$//;
+    $tweet .= "$body…";
+}
+
+if ($live) {
+    $nt->update($tweet);
+}
+else {
+    $len = length($tweet);
+    print "$tweet\n\nLength: $len\n";
+}
